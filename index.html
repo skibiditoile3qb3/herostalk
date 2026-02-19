@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FORUM//BOARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #141414;
+      --surface2: #1c1c1c;
+      --border: #2a2a2a;
+      --border2: #383838;
+      --accent: #e8ff47;
+      --accent2: #ff4757;
+      --text: #e8e8e8;
+      --text2: #888;
+      --text3: #555;
+      --font-mono: 'Space Mono', monospace;
+      --font-serif: 'IBM Plex Serif', serif;
+      --font-display: 'Bebas Neue', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── SCANLINE OVERLAY ─────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ─── HEADER ───────────────────────── */
+    header {
+      border-bottom: 2px solid var(--accent);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-size: 32px;
+      letter-spacing: 4px;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .logo span { color: var(--text3); font-size: 18px; }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-badge {
+      font-size: 11px;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-badge strong {
+      color: var(--accent);
+      font-size: 13px;
+    }
+
+    .btn-logout {
+      background: none;
+      border: 1px solid var(--border2);
+      color: var(--text3);
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+    }
+
+    .btn-logout:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    /* ─── CONNECTION STATUS ────────────── */
+    #conn-status {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text3);
+      z-index: 200;
+    }
+
+    #conn-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text3);
+      transition: background 0.3s;
+    }
+
+    #conn-dot.online { background: #4cff91; box-shadow: 0 0 8px #4cff91; animation: pulse 2s infinite; }
+    #conn-dot.offline { background: var(--accent2); }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ─── PAGES ────────────────────────── */
+    .page {
+      display: none;
+      min-height: calc(100vh - 64px);
+    }
+
+    .page.active { display: block; }
+
+    /* ─── REGISTER PAGE ────────────────── */
+    #page-register {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .register-card {
+      width: 100%;
+      max-width: 480px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 48px 40px;
+    }
+
+    .register-card h1 {
+      font-family: var(--font-display);
+      font-size: 42px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .register-card p {
+      color: var(--text2);
+      font-size: 11px;
+      margin-bottom: 32px;
+      line-height: 1.7;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text2);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 12px 14px;
+      outline: none;
+      transition: border 0.15s;
+    }
+
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      border-color: var(--accent);
+    }
+
+    .form-group .field-error {
+      font-size: 10px;
+      color: var(--accent2);
+      margin-top: 6px;
+      letter-spacing: 1px;
+      display: none;
+    }
+
+    .form-group .field-error.show { display: block; }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 14px;
+      font-family: var(--font-display);
+      font-size: 20px;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-primary:hover { background: #fff; }
+    .btn-primary:disabled { background: var(--border); color: var(--text3); cursor: not-allowed; }
+
+    /* ─── HOME PAGE ────────────────────── */
+    #page-home {
+      padding: 32px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .page-title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .page-title {
+      font-family: var(--font-display);
+      font-size: 36px;
+      letter-spacing: 4px;
+    }
+
+    .controls-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .sort-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 8px 12px;
+      cursor: pointer;
+      outline: none;
+      letter-spacing: 1px;
+    }
+
+    .sort-select:focus { border-color: var(--accent); }
+
+    .btn-new-post {
+      background: none;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: 2px;
+      padding: 8px 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-new-post:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* ─── POST CARD ────────────────────── */
+    #posts-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .post-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .post-card:hover {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    .post-card:hover .post-card-title {
+      color: var(--accent);
+    }
+
+    .post-card-left { flex: 1; min-width: 0; }
+
+    .post-card-meta {
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .post-card-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      transition: color 0.15s;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .post-card-hint {
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 1px;
+    }
+
+    .post-card-right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .like-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      width: 48px;
+      height: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      gap: 2px;
+      transition: all 0.15s;
+    }
+
+    .like-btn:hover, .like-btn.liked {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .like-btn .like-icon { font-size: 14px; line-height: 1; }
+    .like-btn .like-count { line-height: 1; }
+
+    /* ─── NEW POST MODAL ───────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 40px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: 3px;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .btn-close:hover { color: var(--accent2); }
+
+    /* ─── RICH TEXT TOOLBAR ────────────── */
+    .editor-toolbar {
+      display: flex;
+      gap: 4px;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      padding: 8px 10px;
+      background: var(--surface2);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text2);
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.1s;
+    }
+
+    .toolbar-btn:hover {
+      border-color: var(--border2);
+      color: var(--text);
+      background: var(--border);
+    }
+
+    .toolbar-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    .size-select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 8px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .editor-area {
+      width: 100%;
+      min-height: 200px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-serif);
+      font-size: 15px;
+      padding: 14px;
+      outline: none;
+      line-height: 1.7;
+    }
+
+    .editor-area:focus { border-color: var(--accent); }
+
+    /* ─── POST VIEW PAGE ───────────────── */
+    #page-post {
+      padding: 32px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text3);
+      letter-spacing: 1px;
+      cursor: pointer;
+      margin-bottom: 28px;
+      background: none;
+      border: none;
+      font-family: var(--font-mono);
+    }
+
+    .back-btn:hover { color: var(--accent); }
+
+    .post-full-meta {
+      font-size: 11px;
+      color: var(--text3);
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .post-full-title {
+      font-family: var(--font-serif);
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 24px;
+    }
+
+    .post-full-content {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--text);
+      margin-bottom: 32px;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+
+    .post-actions-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+
+    .like-btn-full {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 10px 20px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 1px;
+    }
+
+    .like-btn-full:hover, .like-btn-full.liked {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    /* ─── COMMENTS ─────────────────────── */
+    .comments-section h3 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+    }
+
+    .comment {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .comment-meta {
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .comment-meta strong { color: var(--accent); }
+
+    .comment-content {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .comment-form {
+      margin-top: 24px;
+    }
+
+    .comment-form textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-serif);
+      font-size: 14px;
+      padding: 12px 14px;
+      outline: none;
+      resize: vertical;
+      min-height: 80px;
+      transition: border 0.15s;
+    }
+
+    .comment-form textarea:focus { border-color: var(--accent); }
+
+    .btn-comment {
+      margin-top: 10px;
+      background: none;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: 2px;
+      padding: 8px 24px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-comment:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* ─── LOADING STATE ────────────────── */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      gap: 16px;
+      color: var(--text3);
+      font-size: 11px;
+      letter-spacing: 2px;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text3);
+      font-size: 11px;
+      letter-spacing: 2px;
+    }
+
+    .empty-state .big { font-family: var(--font-display); font-size: 60px; display: block; margin-bottom: 12px; color: var(--border2); }
+
+    /* ─── TOAST ────────────────────────── */
+    #toast-container {
+      position: fixed;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-size: 11px;
+      letter-spacing: 1px;
+      padding: 10px 20px;
+      animation: toastIn 0.2s ease forwards;
+    }
+
+    .toast.error { border-color: var(--accent2); color: var(--accent2); }
+    .toast.success { border-color: var(--accent); color: var(--accent); }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── SCROLLBAR ────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      #page-home, #page-post { padding: 16px; }
+      .modal { padding: 24px 20px; }
+      .post-card-title { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">FORUM<span>//BOARD</span></div>
+  <div class="header-right" id="header-user" style="display:none">
+    <div class="user-badge">LOGGED IN AS <strong id="display-username"></strong></div>
+    <button class="btn-logout" onclick="logout()">LOGOUT</button>
+  </div>
+</header>
+
+<!-- Connection Status -->
+<div id="conn-status">
+  <div id="conn-dot"></div>
+  <span id="conn-label">CONNECTING</span>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- ───────────────────────── REGISTER PAGE ───────────────────────── -->
+<div class="page active" id="page-register">
+  <div class="register-card">
+    <h1>REGISTER</h1>
+    <p>Choose a username to enter the board.<br/>No password required. Your ID is stored locally.</p>
+    <div class="form-group">
+      <label>USERNAME</label>
+      <input type="text" id="reg-username" placeholder="enter username..." maxlength="24" autocomplete="off" />
+      <div class="field-error" id="reg-error"></div>
+    </div>
+    <button class="btn-primary" id="reg-btn" onclick="handleRegister()">ENTER BOARD</button>
+  </div>
+</div>
+
+<!-- ───────────────────────── HOME PAGE ──────────────────────────── -->
+<div class="page" id="page-home">
+  <div class="page-title-bar">
+    <div class="page-title">// BOARD</div>
+    <div class="controls-bar">
+      <select class="sort-select" id="sort-select" onchange="loadPosts()">
+        <option value="newest">NEWEST FIRST</option>
+        <option value="oldest">OLDEST FIRST</option>
+        <option value="popular">MOST POPULAR</option>
+      </select>
+      <button class="btn-new-post" onclick="openNewPost()">+ NEW POST</button>
+    </div>
+  </div>
+  <div id="posts-container">
+    <div class="loading-state"><div class="spinner"></div><span>LOADING POSTS</span></div>
+  </div>
+</div>
+
+<!-- ───────────────────────── POST VIEW PAGE ─────────────────────── -->
+<div class="page" id="page-post">
+  <button class="back-btn" onclick="showPage('home')">← BACK TO BOARD</button>
+  <div id="post-full-content">
+    <div class="loading-state"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ───────────────────────── NEW POST MODAL ─────────────────────── -->
+<div class="modal-overlay" id="new-post-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">NEW POST</div>
+      <button class="btn-close" onclick="closeNewPost()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>SUBJECT / TITLE</label>
+      <input type="text" id="post-title" placeholder="Post title..." maxlength="120" />
+    </div>
+    <div class="form-group">
+      <label>CONTENT</label>
+      <div class="editor-toolbar">
+        <button class="toolbar-btn" title="Bold" onclick="editorCmd('bold')"><b>B</b></button>
+        <button class="toolbar-btn" title="Italic" onclick="editorCmd('italic')"><i>I</i></button>
+        <button class="toolbar-btn" title="Underline" onclick="editorCmd('underline')"><u>U</u></button>
+        <div class="toolbar-sep"></div>
+        <select class="size-select" onchange="editorSize(this.value); this.value=''">
+          <option value="">SIZE</option>
+          <option value="12px">S</option>
+          <option value="16px">M</option>
+          <option value="22px">L</option>
+          <option value="30px">XL</option>
+        </select>
+      </div>
+      <div class="editor-area" id="editor" contenteditable="true" spellcheck="true"></div>
+    </div>
+    <button class="btn-primary" id="submit-post-btn" onclick="submitPost()">POST IT</button>
+  </div>
+</div>
+
+<script src="relay-client.js"></script>
+<script>
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let currentUser = null; // { username, displayUsername, permId }
+let currentPostId = null;
+let postsCache = {};
+
+// ─── UTILS ──────────────────────────────────────────────────────────────────
+function genId() {
+  return 'pid_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+}
+
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function formatDate(d) {
+  const date = new Date(d);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ─── CONNECTION ──────────────────────────────────────────────────────────────
+function setConnStatus(online) {
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  dot.className = online ? 'online' : 'offline';
+  label.textContent = online ? 'ONLINE' : 'OFFLINE';
+}
+
+relay.on('disconnect', () => setConnStatus(false));
+relay.on('reconnected', () => { setConnStatus(true); if (currentUser) loadPosts(); });
+
+// ─── REAL-TIME EVENTS ────────────────────────────────────────────────────────
+relay.on('new_post', ({ post }) => {
+  postsCache[post._id] = post;
+  const sort = document.getElementById('sort-select')?.value || 'newest';
+  if (sort === 'newest') prependPost(post);
+});
+
+relay.on('post_likes_updated', ({ postId, likes }) => {
+  // update in cache
+  if (postsCache[postId]) postsCache[postId].likes = likes;
+  // update DOM in list
+  const el = document.querySelector(`.post-card[data-id="${postId}"] .like-count`);
+  if (el) el.textContent = likes;
+  // update in post view
+  const fullLike = document.getElementById('full-like-count');
+  if (fullLike && currentPostId === postId) fullLike.textContent = likes;
+});
+
+relay.on('new_comment', ({ postId, comment }) => {
+  if (currentPostId === postId) appendComment(comment);
+  if (postsCache[postId]) postsCache[postId].comments.push(comment);
+});
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    await relay.connect();
+    setConnStatus(true);
+  } catch {
+    setConnStatus(false);
+    toast('Cannot connect to server. Retrying...', 'error');
+  }
+
+  const storedPermId = localStorage.getItem('forum_permId');
+  const storedUsername = localStorage.getItem('forum_username');
+
+  if (!storedPermId || !storedUsername) {
+    showPage('register');
+    return;
+  }
+
+  // verify
+  try {
+    const res = await relay.verifyUser(storedUsername, storedPermId);
+    if (res.valid) {
+      currentUser = {
+        username: storedUsername,
+        displayUsername: res.displayUsername,
+        permId: storedPermId
+      };
+      enterBoard();
+    } else {
+      // tampered - clear everything
+      localStorage.clear();
+      toast('Session invalid. Please re-register.', 'error');
+      showPage('register');
+    }
+  } catch {
+    toast('Connection error during verification.', 'error');
+    showPage('register');
+  }
+}
+
+async function handleRegister() {
+  const btn = document.getElementById('reg-btn');
+  const errEl = document.getElementById('reg-error');
+  const input = document.getElementById('reg-username');
+  const raw = input.value.trim();
+
+  errEl.classList.remove('show');
+
+  if (!raw || raw.length < 2) {
+    errEl.textContent = 'USERNAME TOO SHORT';
+    errEl.classList.add('show');
+    return;
+  }
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(raw)) {
+    errEl.textContent = 'LETTERS, NUMBERS, _ AND - ONLY';
+    errEl.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'CHECKING...';
+
+  try {
+    // check if in use
+    const checkRes = await relay.checkUsername(raw);
+    if (checkRes.inUse) {
+      errEl.textContent = 'IN USE';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'ENTER BOARD';
+      return;
+    }
+
+    // register
+    const permId = genId();
+    const regRes = await relay.registerUser(raw, permId);
+
+    if (!regRes.success) {
+      if (regRes.reason === 'USERNAME_TAKEN') {
+        errEl.textContent = 'IN USE';
+        errEl.classList.add('show');
+      } else {
+        toast('Registration failed.', 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = 'ENTER BOARD';
+      return;
+    }
+
+    localStorage.setItem('forum_permId', permId);
+    localStorage.setItem('forum_username', raw.toLowerCase());
+
+    currentUser = { username: raw.toLowerCase(), displayUsername: raw, permId };
+    enterBoard();
+
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'ENTER BOARD';
+  }
+}
+
+function enterBoard() {
+  document.getElementById('display-username').textContent = currentUser.displayUsername;
+  document.getElementById('header-user').style.display = 'flex';
+  showPage('home');
+  loadPosts();
+}
+
+function logout() {
+  localStorage.clear();
+  currentUser = null;
+  document.getElementById('header-user').style.display = 'none';
+  showPage('register');
+  document.getElementById('reg-username').value = '';
+  document.getElementById('reg-error').classList.remove('show');
+  document.getElementById('reg-btn').disabled = false;
+  document.getElementById('reg-btn').textContent = 'ENTER BOARD';
+}
+
+// ─── POSTS ────────────────────────────────────────────────────────────────────
+async function loadPosts() {
+  const container = document.getElementById('posts-container');
+  const sort = document.getElementById('sort-select').value;
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>LOADING</span></div>';
+
+  try {
+    const res = await relay.getPosts(sort);
+    postsCache = {};
+    res.posts.forEach(p => postsCache[p._id] = p);
+    renderPosts(res.posts);
+  } catch {
+    container.innerHTML = '<div class="empty-state"><span class="big">!!</span>FAILED TO LOAD POSTS</div>';
+  }
+}
+
+function renderPosts(posts) {
+  const container = document.getElementById('posts-container');
+  if (!posts.length) {
+    container.innerHTML = '<div class="empty-state"><span class="big">[ ]</span>NO POSTS YET. BE FIRST.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  posts.forEach(p => container.appendChild(makePostCard(p)));
+}
+
+function prependPost(post) {
+  const container = document.getElementById('posts-container');
+  const emptyEl = container.querySelector('.empty-state');
+  if (emptyEl) container.innerHTML = '';
+  container.prepend(makePostCard(post));
+}
+
+function makePostCard(post) {
+  const likedBy = post.likedBy || [];
+  const isLiked = currentUser && likedBy.includes(currentUser.permId);
+
+  const card = document.createElement('div');
+  card.className = 'post-card';
+  card.dataset.id = post._id;
+
+  card.innerHTML = `
+    <div class="post-card-left">
+      <div class="post-card-meta">${formatDate(post.createdAt)} · BY ${(post.author || '').toUpperCase()}</div>
+      <div class="post-card-title">${escapeHtml(post.title)}</div>
+      <div class="post-card-hint">↳ CLICK TO READ MORE · ${(post.comments || []).length} COMMENT${(post.comments||[]).length!==1?'S':''}</div>
+    </div>
+    <div class="post-card-right">
+      <button class="like-btn ${isLiked ? 'liked' : ''}" data-id="${post._id}" onclick="toggleLike(event, '${post._id}')">
+        <span class="like-icon">♥</span>
+        <span class="like-count">${post.likes || 0}</span>
+      </button>
+    </div>
+  `;
+
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.like-btn')) return;
+    openPost(post._id);
+  });
+
+  return card;
+}
+
+async function toggleLike(e, postId) {
+  e.stopPropagation();
+  if (!currentUser) return;
+  try {
+    const res = await relay.likePost(postId, currentUser.permId, currentUser.username);
+    if (res.success) {
+      const btn = document.querySelector(`.post-card[data-id="${postId}"] .like-btn`);
+      if (btn) {
+        btn.classList.toggle('liked', res.liked);
+        btn.querySelector('.like-count').textContent = res.likes;
+      }
+      if (postsCache[postId]) postsCache[postId].likes = res.likes;
+    }
+  } catch { toast('Could not update like.', 'error'); }
+}
+
+// ─── NEW POST ─────────────────────────────────────────────────────────────────
+function openNewPost() {
+  document.getElementById('new-post-modal').classList.add('open');
+  document.getElementById('editor').focus();
+}
+
+function closeNewPost() {
+  document.getElementById('new-post-modal').classList.remove('open');
+  document.getElementById('post-title').value = '';
+  document.getElementById('editor').innerHTML = '';
+}
+
+function editorCmd(cmd) {
+  document.getElementById('editor').focus();
+  document.execCommand(cmd, false, null);
+}
+
+function editorSize(size) {
+  if (!size) return;
+  document.getElementById('editor').focus();
+  document.execCommand('fontSize', false, '7');
+  const fontEls = document.getElementById('editor').querySelectorAll('font[size="7"]');
+  fontEls.forEach(el => {
+    el.removeAttribute('size');
+    el.style.fontSize = size;
+  });
+}
+
+async function submitPost() {
+  const title = document.getElementById('post-title').value.trim();
+  const content = document.getElementById('editor').innerHTML.trim();
+  const btn = document.getElementById('submit-post-btn');
+
+  if (!title) { toast('Add a title!', 'error'); return; }
+  if (!content || content === '<br>') { toast('Write something!', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'POSTING...';
+
+  try {
+    const res = await relay.createPost(title, content, currentUser.username, currentUser.permId);
+    if (res.success) {
+      closeNewPost();
+      toast('POST PUBLISHED', 'success');
+      // If newest-first, it'll arrive via broadcast too, but let's add it directly
+      postsCache[res.post._id] = res.post;
+      const sort = document.getElementById('sort-select').value;
+      if (sort === 'newest') {
+        prependPost(res.post);
+      } else {
+        loadPosts();
+      }
+    } else {
+      toast('Failed to post: ' + res.reason, 'error');
+    }
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'POST IT';
+}
+
+// ─── POST VIEW ────────────────────────────────────────────────────────────────
+async function openPost(postId) {
+  currentPostId = postId;
+  showPage('post');
+
+  const container = document.getElementById('post-full-content');
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+
+  try {
+    const res = await relay.getPost(postId);
+    const post = res.post;
+    if (!post) {
+      container.innerHTML = '<div class="empty-state">POST NOT FOUND</div>';
+      return;
+    }
+    postsCache[postId] = post;
+    renderFullPost(post);
+  } catch {
+    container.innerHTML = '<div class="empty-state">ERROR LOADING POST</div>';
+  }
+}
+
+function renderFullPost(post) {
+  const likedBy = post.likedBy || [];
+  const isLiked = currentUser && likedBy.includes(currentUser.permId);
+  const container = document.getElementById('post-full-content');
+
+  container.innerHTML = `
+    <div class="post-full-meta">${formatDate(post.createdAt)} · BY ${(post.author || '').toUpperCase()}</div>
+    <div class="post-full-title">${escapeHtml(post.title)}</div>
+    <div class="post-full-content">${post.content}</div>
+    <div class="post-actions-bar">
+      <button class="like-btn-full ${isLiked ? 'liked' : ''}" id="full-like-btn" onclick="toggleFullLike('${post._id}')">
+        ♥ <span id="full-like-count">${post.likes || 0}</span> LIKES
+      </button>
+    </div>
+    <div class="comments-section">
+      <h3>COMMENTS (${(post.comments || []).length})</h3>
+      <div id="comments-list">
+        ${(post.comments || []).length === 0
+          ? '<div class="empty-state" style="padding:24px 0">NO COMMENTS YET</div>'
+          : (post.comments || []).map(c => commentHTML(c)).join('')
+        }
+      </div>
+      <div class="comment-form">
+        <textarea id="comment-input" placeholder="Write a comment..."></textarea>
+        <button class="btn-comment" onclick="submitComment('${post._id}')">POST COMMENT</button>
+      </div>
+    </div>
+  `;
+}
+
+function commentHTML(c) {
+  return `
+    <div class="comment">
+      <div class="comment-meta"><strong>${escapeHtml(c.author || '?')}</strong> · ${formatDate(c.createdAt)}</div>
+      <div class="comment-content">${escapeHtml(c.content)}</div>
+    </div>
+  `;
+}
+
+function appendComment(comment) {
+  const list = document.getElementById('comments-list');
+  if (!list) return;
+  const empty = list.querySelector('.empty-state');
+  if (empty) list.innerHTML = '';
+  list.insertAdjacentHTML('beforeend', commentHTML(comment));
+  // update comment count header
+  const h3 = document.querySelector('.comments-section h3');
+  if (h3 && postsCache[currentPostId]) {
+    h3.textContent = `COMMENTS (${postsCache[currentPostId].comments.length})`;
+  }
+}
+
+async function toggleFullLike(postId) {
+  if (!currentUser) return;
+  try {
+    const res = await relay.likePost(postId, currentUser.permId, currentUser.username);
+    if (res.success) {
+      document.getElementById('full-like-btn').classList.toggle('liked', res.liked);
+      document.getElementById('full-like-count').textContent = res.likes;
+      if (postsCache[postId]) postsCache[postId].likes = res.likes;
+    }
+  } catch { toast('Could not update like.', 'error'); }
+}
+
+async function submitComment(postId) {
+  const input = document.getElementById('comment-input');
+  const content = input.value.trim();
+  if (!content) return;
+
+  try {
+    const res = await relay.addComment(postId, content, currentUser.username, currentUser.permId);
+    if (res.success) {
+      input.value = '';
+      if (!postsCache[postId]) postsCache[postId] = { comments: [] };
+      postsCache[postId].comments.push(res.comment);
+      appendComment(res.comment);
+    } else {
+      toast('Failed to post comment.', 'error');
+    }
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Close modal on overlay click
+document.getElementById('new-post-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeNewPost();
+});
+
+// Register on Enter
+document.getElementById('reg-username').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') handleRegister();
+});
+
+// ─── START ────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
