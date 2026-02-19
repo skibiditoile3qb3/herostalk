@@ -1236,7 +1236,8 @@ function editorSize(size) {
 
 async function submitPost() {
   const title = document.getElementById('post-title').value.trim();
-  const content = document.getElementById('editor').innerHTML.trim();
+  const rawContent = document.getElementById('editor').innerHTML.trim();
+  const content = linkify(rawContent);
   const btn = document.getElementById('submit-post-btn');
 
   if (!title) { toast('Add a title!', 'error'); return; }
@@ -1533,6 +1534,39 @@ function removeCommentImage() {
   const preview = document.getElementById('comment-img-preview');
   preview.classList.remove('has-img');
   document.getElementById('comment-img-thumb').src = '';
+}
+
+// ─── AUTO-LINKIFY ─────────────────────────────────────────────────────────────
+function linkify(html) {
+  // Create a temp div to work with the HTML as DOM
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+
+  // Walk all text nodes and replace URLs with <a> tags
+  function walkTextNodes(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const urlRegex = /(https?:\/\/|www\.)[^\s<>"']+[^\s<>"'.,!?;:)]/gi;
+      if (urlRegex.test(node.textContent)) {
+        const span = document.createElement('span');
+        span.innerHTML = node.textContent.replace(
+          /(https?:\/\/|www\.)[^\s<>"']+[^\s<>"'.,!?;:)]/gi,
+          (url) => {
+            const href = url.startsWith('http') ? url : 'https://' + url;
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+          }
+        );
+        node.parentNode.replaceChild(span, node);
+      }
+    } else if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      node.tagName !== 'A' // don't process inside existing links
+    ) {
+      Array.from(node.childNodes).forEach(walkTextNodes);
+    }
+  }
+
+  walkTextNodes(tmp);
+  return tmp.innerHTML;
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
