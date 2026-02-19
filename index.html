@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FORUM//BOARD</title>
+  <title>Evo? Forum</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
   <style>
@@ -1401,10 +1401,12 @@ async function submitComment(postId) {
   const text = input.value.trim();
   if (!text && !commentImageData) return;
 
-  // Build content: text + optional image tag
-  let content = text;
+  // Escape and linkify the text, then optionally append image
+  const escapedText = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const linkedText = linkifyText(escapedText);
+  let content = linkedText;
   if (commentImageData) {
-    content += (text ? '<br>' : '') + `<img src="${commentImageData}" style="max-width:100%;display:block;margin:6px 0">`;
+    content += (linkedText ? '<br>' : '') + `<img src="${commentImageData}" style="max-width:100%;display:block;margin:6px 0">`;
   }
 
   try {
@@ -1537,36 +1539,45 @@ function removeCommentImage() {
 }
 
 // ─── AUTO-LINKIFY ─────────────────────────────────────────────────────────────
+// Matches:
+//   - https://anything
+//   - http://anything
+//   - www.anything
+//   - domain.tld  (known TLDs: com io net org gov co uk de app dev edu mil int)
+const URL_REGEX = /(?:https?:\/\/|www\.)[^\s<>"']+[^\s<>"'.,!?;:)]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+(?:com|io|net|org|gov|co|uk|de|app|dev|edu|mil|int|gg|me|tv|us|ca|au|fr|jp|ru|it|es|nl|se|no|fi|dk|pl|br|mx|ar|nz|za|in|cn|kr|sg|hk|tw|ie|at|be|ch|cz|hu|pt|ro|gr|bg|hr|sk|si|lt|lv|ee|cy|lu|mt)(?:\/[^\s<>"']*[^\s<>"'.,!?;:)]+)?/gi;
+
 function linkify(html) {
-  // Create a temp div to work with the HTML as DOM
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
 
-  // Walk all text nodes and replace URLs with <a> tags
   function walkTextNodes(node) {
     if (node.nodeType === Node.TEXT_NODE) {
-      const urlRegex = /(https?:\/\/|www\.)[^\s<>"']+[^\s<>"'.,!?;:)]/gi;
-      if (urlRegex.test(node.textContent)) {
+      URL_REGEX.lastIndex = 0;
+      if (URL_REGEX.test(node.textContent)) {
+        URL_REGEX.lastIndex = 0;
         const span = document.createElement('span');
-        span.innerHTML = node.textContent.replace(
-          /(https?:\/\/|www\.)[^\s<>"']+[^\s<>"'.,!?;:)]/gi,
-          (url) => {
-            const href = url.startsWith('http') ? url : 'https://' + url;
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-          }
-        );
+        span.innerHTML = node.textContent.replace(URL_REGEX, (url) => {
+          const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+          return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        });
         node.parentNode.replaceChild(span, node);
       }
-    } else if (
-      node.nodeType === Node.ELEMENT_NODE &&
-      node.tagName !== 'A' // don't process inside existing links
-    ) {
+    } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'A') {
       Array.from(node.childNodes).forEach(walkTextNodes);
     }
   }
 
   walkTextNodes(tmp);
   return tmp.innerHTML;
+}
+
+// Same regex for plain text (comments)
+function linkifyText(text) {
+  URL_REGEX.lastIndex = 0;
+  return text.replace(URL_REGEX, (url) => {
+    const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+  });
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
