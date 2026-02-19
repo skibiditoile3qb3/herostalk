@@ -707,113 +707,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-
-    /* ─── IMAGE SUPPORT ────────────────── */
-    .editor-area img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-      margin: 8px 0;
-      border: 1px solid var(--border);
-      cursor: default;
-    }
-
-    .img-upload-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: none;
-      border: 1px solid transparent;
-      color: var(--text2);
-      width: auto;
-      height: 28px;
-      padding: 0 8px;
-      cursor: pointer;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 1px;
-      transition: all 0.1s;
-    }
-
-    .img-upload-label:hover {
-      border-color: var(--border2);
-      color: var(--text);
-      background: var(--border);
-    }
-
-    .editor-area.drag-over {
-      border-color: var(--accent);
-      background: rgba(232,255,71,0.04);
-    }
-
-    .post-full-content img,
-    .comment-content img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-      margin: 10px 0;
-      border: 1px solid var(--border);
-    }
-
-    .comment-form-wrap {
-      margin-top: 24px;
-    }
-
-    .comment-img-preview {
-      display: none;
-      position: relative;
-      margin-bottom: 8px;
-    }
-
-    .comment-img-preview.has-img { display: block; }
-
-    .comment-img-preview img {
-      max-height: 120px;
-      max-width: 100%;
-      border: 1px solid var(--border);
-      display: block;
-    }
-
-    .comment-img-preview .remove-img {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      background: rgba(0,0,0,0.7);
-      border: none;
-      color: var(--accent2);
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .comment-bottom-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .comment-img-label {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--text3);
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 1px;
-      padding: 6px 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .comment-img-label:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
     /* ─── SCROLLBAR ────────────────────── */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
@@ -913,11 +806,6 @@
           <option value="22px">L</option>
           <option value="30px">XL</option>
         </select>
-        <div class="toolbar-sep"></div>
-        <label class="img-upload-label" title="Insert Image">
-          &#128247; IMG
-          <input type="file" accept="image/*" style="display:none" onchange="insertImageFromFile(this)">
-        </label>
       </div>
       <div class="editor-area" id="editor" contenteditable="true" spellcheck="true"></div>
     </div>
@@ -1298,30 +1186,19 @@ function renderFullPost(post) {
           : (post.comments || []).map(c => commentHTML(c)).join('')
         }
       </div>
-      <div class="comment-form-wrap">
-        <textarea id="comment-input" placeholder="Write a comment..." class="comment-form"></textarea>
-        <div class="comment-img-preview" id="comment-img-preview">
-          <img id="comment-img-thumb" src="" alt=""/>
-          <button class="remove-img" onclick="removeCommentImage()">✕</button>
-        </div>
-        <div class="comment-bottom-bar">
-          <button class="btn-comment" onclick="submitComment('${post._id}')">POST COMMENT</button>
-          <label class="comment-img-label" title="Attach image">
-            &#128247; IMAGE
-            <input type="file" accept="image/*" style="display:none" onchange="attachCommentImage(this)">
-          </label>
-        </div>
+      <div class="comment-form">
+        <textarea id="comment-input" placeholder="Write a comment..."></textarea>
+        <button class="btn-comment" onclick="submitComment('${post._id}')">POST COMMENT</button>
       </div>
     </div>
   `;
 }
 
 function commentHTML(c) {
-  // content may contain HTML (images), render it directly
   return `
     <div class="comment">
       <div class="comment-meta"><strong>${escapeHtml(c.author || '?')}</strong> · ${formatDate(c.createdAt)}</div>
-      <div class="comment-content">${c.content}</div>
+      <div class="comment-content">${escapeHtml(c.content)}</div>
     </div>
   `;
 }
@@ -1353,20 +1230,13 @@ async function toggleFullLike(postId) {
 
 async function submitComment(postId) {
   const input = document.getElementById('comment-input');
-  const text = input.value.trim();
-  if (!text && !commentImageData) return;
-
-  // Build content: text + optional image tag
-  let content = text;
-  if (commentImageData) {
-    content += (text ? '<br>' : '') + `<img src="${commentImageData}" style="max-width:100%;display:block;margin:6px 0">`;
-  }
+  const content = input.value.trim();
+  if (!content) return;
 
   try {
     const res = await relay.addComment(postId, content, currentUser.username, currentUser.permId);
     if (res.success) {
       input.value = '';
-      removeCommentImage();
       if (!postsCache[postId]) postsCache[postId] = { comments: [] };
       postsCache[postId].comments.push(res.comment);
       appendComment(res.comment);
@@ -1376,119 +1246,6 @@ async function submitComment(postId) {
   } catch (e) {
     toast('Error: ' + e.message, 'error');
   }
-}
-
-// ─── IMAGE SUPPORT ───────────────────────────────────────────────────────────
-let commentImageData = null; // base64 for pending comment image
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    if (file.size > 5 * 1024 * 1024) {
-      reject(new Error('Image too large (max 5MB)'));
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function insertImageFromFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  try {
-    const base64 = await fileToBase64(file);
-    insertImageIntoEditor(base64);
-  } catch (e) {
-    toast(e.message, 'error');
-  }
-  input.value = '';
-}
-
-function insertImageIntoEditor(src) {
-  const editor = document.getElementById('editor');
-  editor.focus();
-  const img = document.createElement('img');
-  img.src = src;
-  img.style.maxWidth = '100%';
-  const sel = window.getSelection();
-  if (sel && sel.rangeCount > 0) {
-    const range = sel.getRangeAt(0);
-    range.deleteContents();
-    range.insertNode(img);
-    range.setStartAfter(img);
-    range.setEndAfter(img);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  } else {
-    editor.appendChild(img);
-  }
-}
-
-// Drag & drop into editor
-document.addEventListener('DOMContentLoaded', () => {
-  const editor = document.getElementById('editor');
-  if (!editor) return;
-
-  editor.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    editor.classList.add('drag-over');
-  });
-
-  editor.addEventListener('dragleave', () => editor.classList.remove('drag-over'));
-
-  editor.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    editor.classList.remove('drag-over');
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-    for (const file of files) {
-      try {
-        const base64 = await fileToBase64(file);
-        insertImageIntoEditor(base64);
-      } catch (err) {
-        toast(err.message, 'error');
-      }
-    }
-  });
-
-  // Paste image support
-  editor.addEventListener('paste', async (e) => {
-    const items = Array.from(e.clipboardData.items || []);
-    const imgItem = items.find(i => i.type.startsWith('image/'));
-    if (imgItem) {
-      e.preventDefault();
-      const file = imgItem.getAsFile();
-      try {
-        const base64 = await fileToBase64(file);
-        insertImageIntoEditor(base64);
-      } catch (err) {
-        toast(err.message, 'error');
-      }
-    }
-  });
-});
-
-async function attachCommentImage(input) {
-  const file = input.files[0];
-  if (!file) return;
-  try {
-    commentImageData = await fileToBase64(file);
-    const preview = document.getElementById('comment-img-preview');
-    const thumb = document.getElementById('comment-img-thumb');
-    thumb.src = commentImageData;
-    preview.classList.add('has-img');
-  } catch (e) {
-    toast(e.message, 'error');
-  }
-  input.value = '';
-}
-
-function removeCommentImage() {
-  commentImageData = null;
-  const preview = document.getElementById('comment-img-preview');
-  preview.classList.remove('has-img');
-  document.getElementById('comment-img-thumb').src = '';
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
