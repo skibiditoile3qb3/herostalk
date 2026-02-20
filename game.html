@@ -1022,7 +1022,7 @@
     <div id="waiting-maker-label" style="font-size:11px;color:var(--text3);letter-spacing:2px">THE EMOJI MAKER IS COOKING...</div>
   </div>
 </div>
-<script src="relay-client.js"></script>
+
 <script>
 // ══════════════════════════════════════════════════════════
 //  EMOJI DATA
@@ -1064,38 +1064,21 @@ const ALL_WORDS = [
 //  GROQ — proxied through relay server (key never in browser)
 // ══════════════════════════════════════════════════════════
 async function groqGuess(emojis, previousGuesses = []) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      unsub();
-      // Fallback so the game never freezes
-      const fallbacks = ['ROAD TRIP','PIZZA PARTY','BEACH DAY','LOVE STORY',
-        'WILD ADVENTURE','MIDNIGHT SNACK','HAPPY HOUR','SPACE TRAVEL',
-        'ROCK MUSIC','JUNGLE FEVER','WINTER STORM','TREASURE HUNT',
-        'MAGIC SPELL','DRAGON FIRE','SUPER HERO','MYSTERY BOX']
-        .filter(f => !previousGuesses.includes(f));
-      resolve(fallbacks[Math.floor(Math.random() * fallbacks.length)] || 'MYSTERY');
-    }, 12000);
+  const fallbacks = ['ROAD TRIP','PIZZA PARTY','BEACH DAY','LOVE STORY',
+    'WILD ADVENTURE','MIDNIGHT SNACK','HAPPY HOUR','SPACE TRAVEL',
+    'ROCK MUSIC','JUNGLE FEVER','WINTER STORM','TREASURE HUNT',
+    'MAGIC SPELL','DRAGON FIRE','SUPER HERO','MYSTERY BOX']
+    .filter(f => !previousGuesses.includes(f));
 
-    const unsub = relay.on('groq_result', (msg) => {
-      clearTimeout(timer);
-      unsub();
-      if (msg.error) {
-        // Still resolve with fallback so game continues
-        const fallbacks = ['ROAD TRIP','PIZZA PARTY','BEACH DAY','LOVE STORY',
-          'WILD ADVENTURE','MIDNIGHT SNACK','HAPPY HOUR','SPACE TRAVEL']
-          .filter(f => !previousGuesses.includes(f));
-        resolve(fallbacks[Math.floor(Math.random() * fallbacks.length)] || 'MYSTERY');
-      } else {
-        resolve(msg.guess);
-      }
-    });
-
-    relay.send('groq_guess', { emojis, previousGuesses }).catch(() => {
-      clearTimeout(timer);
-      unsub();
-      resolve('MYSTERY');
-    });
-  });
+  try {
+    const res = await relay.send('groq_guess', { emojis, previousGuesses }, 15000);
+    if (res.error || !res.guess) {
+      return fallbacks[Math.floor(Math.random() * fallbacks.length)] || 'MYSTERY';
+    }
+    return res.guess;
+  } catch {
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)] || 'MYSTERY';
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1851,7 +1834,6 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   initEmojiPicker();
   showScreen('lobby');
-  relay.connect().catch(() => console.warn('[relay] Could not connect on load'))
 
   // Enter key on type-your-own emoji input
   const typeInput = document.getElementById('emoji-type-input');
