@@ -1069,15 +1069,18 @@ async function groqGuess(emojis, previousGuesses = []) {
     'ROCK MUSIC','JUNGLE FEVER','WINTER STORM','TREASURE HUNT',
     'MAGIC SPELL','DRAGON FIRE','SUPER HERO','MYSTERY BOX']
     .filter(f => !previousGuesses.includes(f));
+  const fallback = () => fallbacks[Math.floor(Math.random() * fallbacks.length)] || 'MYSTERY';
 
   try {
+    // Make sure relay is connected before sending
+    if (!relay.connected) await relay.connect();
     const res = await relay.send('groq_guess', { emojis, previousGuesses }, 15000);
-    if (res.error || !res.guess) {
-      return fallbacks[Math.floor(Math.random() * fallbacks.length)] || 'MYSTERY';
-    }
+    console.log('[GROQ] Response from server:', res);
+    if (!res || res.error || !res.guess) return fallback();
     return res.guess;
-  } catch {
-    return fallbacks[Math.floor(Math.random() * fallbacks.length)] || 'MYSTERY';
+  } catch (e) {
+    console.warn('[GROQ] Failed, using fallback:', e.message);
+    return fallback();
   }
 }
 
@@ -1834,6 +1837,11 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   initEmojiPicker();
   showScreen('lobby');
+
+  // Connect relay so groq_guess can be proxied through the server
+  relay.connect()
+    .then(() => console.log('[relay] Connected for game'))
+    .catch(() => console.warn('[relay] Could not connect, AI will use fallbacks'));
 
   // Enter key on type-your-own emoji input
   const typeInput = document.getElementById('emoji-type-input');
