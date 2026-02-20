@@ -1022,7 +1022,7 @@
     <div id="waiting-maker-label" style="font-size:11px;color:var(--text3);letter-spacing:2px">THE EMOJI MAKER IS COOKING...</div>
   </div>
 </div>
-
+<script src="relay-client.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════
 //  EMOJI DATA
@@ -1851,6 +1851,7 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   initEmojiPicker();
   showScreen('lobby');
+  relay.connect().catch(() => console.warn('[relay] Could not connect on load'))
 
   // Enter key on type-your-own emoji input
   const typeInput = document.getElementById('emoji-type-input');
