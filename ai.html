@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FORUM//AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #141414;
+      --surface2: #1c1c1c;
+      --border: #2a2a2a;
+      --border2: #383838;
+      --accent: #e8ff47;
+      --accent2: #ff4757;
+      --accent3: #47ffe8;
+      --text: #e8e8e8;
+      --text2: #888;
+      --text3: #555;
+      --font-mono: 'Space Mono', monospace;
+      --font-serif: 'IBM Plex Serif', serif;
+      --font-display: 'Bebas Neue', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── SCANLINE OVERLAY ─────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ─── HEADER ───────────────────────── */
+    header {
+      border-bottom: 2px solid var(--accent);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-size: 32px;
+      letter-spacing: 4px;
+      color: var(--accent);
+      line-height: 1;
+      text-decoration: none;
+    }
+
+    .logo span { color: var(--text3); font-size: 18px; }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-link {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--text3);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .nav-link:hover, .nav-link.active { color: var(--accent); }
+
+    /* ─── MAIN LAYOUT ──────────────────── */
+    .ai-page {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 32px 32px;
+      gap: 32px;
+    }
+
+    /* ─── PAGE HEADER ──────────────────── */
+    .ai-page-header {
+      border-left: 3px solid var(--accent3);
+      padding-left: 16px;
+    }
+
+    .ai-page-title {
+      font-family: var(--font-display);
+      font-size: 48px;
+      letter-spacing: 6px;
+      color: var(--accent3);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .ai-page-sub {
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 2px;
+    }
+
+    /* ─── MODEL BADGE ──────────────────── */
+    .model-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border2);
+      padding: 6px 14px;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text3);
+      margin-top: 12px;
+    }
+
+    .model-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent3);
+      box-shadow: 0 0 8px var(--accent3);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ─── RESPONSE AREA ────────────────── */
+    .response-area {
+      flex: 1;
+      min-height: 280px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .response-inner {
+      padding: 28px 32px;
+      height: 100%;
+      overflow-y: auto;
+      max-height: 520px;
+    }
+
+    .response-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      min-height: 260px;
+      gap: 16px;
+      color: var(--text3);
+    }
+
+    .placeholder-icon {
+      font-family: var(--font-display);
+      font-size: 72px;
+      color: var(--border2);
+      line-height: 1;
+      letter-spacing: 4px;
+    }
+
+    .placeholder-text {
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-align: center;
+    }
+
+    .response-content {
+      display: none;
+      font-family: var(--font-serif);
+      font-size: 15px;
+      line-height: 1.85;
+      color: var(--text);
+    }
+
+    .response-content.visible { display: block; }
+
+    .response-content p { margin-bottom: 14px; }
+    .response-content p:last-child { margin-bottom: 0; }
+
+    .response-content code {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent3);
+    }
+
+    .response-content pre {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent3);
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin: 14px 0;
+    }
+
+    .response-content pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 12px;
+    }
+
+    .response-content strong { color: var(--accent); }
+
+    .response-content ul, .response-content ol {
+      padding-left: 20px;
+      margin-bottom: 14px;
+    }
+
+    .response-content li { margin-bottom: 6px; }
+
+    /* ─── THINKING ANIMATION ───────────── */
+    .thinking {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 28px 32px;
+      color: var(--text3);
+      font-size: 11px;
+      letter-spacing: 2px;
+    }
+
+    .thinking.visible { display: flex; }
+
+    .think-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .think-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent3);
+      animation: thinkBounce 1.2s infinite;
+    }
+
+    .think-dot:nth-child(2) { animation-delay: 0.2s; }
+    .think-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes thinkBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+      30% { transform: translateY(-8px); opacity: 1; }
+    }
+
+    /* ─── RESPONSE META ────────────────── */
+    .response-meta {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 10px 20px;
+      font-size: 9px;
+      color: var(--text3);
+      letter-spacing: 1px;
+      background: var(--surface2);
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .response-meta.visible { display: flex; }
+
+    /* ─── INPUT AREA ───────────────────── */
+    .input-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .input-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text3);
+      text-transform: uppercase;
+    }
+
+    .input-wrap {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      transition: border-color 0.15s;
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--accent3);
+    }
+
+    #ai-input {
+      flex: 1;
+      background: var(--surface);
+      border: none;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 16px 20px;
+      outline: none;
+      resize: none;
+      min-height: 80px;
+      line-height: 1.6;
+    }
+
+    #ai-input::placeholder { color: var(--text3); }
+
+    #ai-submit {
+      background: var(--accent3);
+      border: none;
+      color: #000;
+      font-family: var(--font-display);
+      font-size: 22px;
+      letter-spacing: 3px;
+      padding: 0 28px;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      align-self: stretch;
+    }
+
+    #ai-submit:hover { background: #fff; }
+    #ai-submit:disabled { background: var(--border); color: var(--text3); cursor: not-allowed; }
+
+    /* ─── DISCLAIMER ───────────────────── */
+    .disclaimer {
+      font-size: 9px;
+      color: var(--text3);
+      letter-spacing: 1px;
+      text-align: center;
+      padding-bottom: 8px;
+    }
+
+    /* ─── TOAST ────────────────────────── */
+    #toast-container {
+      position: fixed;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-size: 11px;
+      letter-spacing: 1px;
+      padding: 10px 20px;
+      animation: toastIn 0.2s ease forwards;
+    }
+
+    .toast.error { border-color: var(--accent2); color: var(--accent2); }
+    .toast.success { border-color: var(--accent3); color: var(--accent3); }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── SCROLLBAR ────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      .ai-page { padding: 20px 16px 16px; }
+      .ai-page-title { font-size: 36px; }
+      #ai-submit { padding: 0 16px; font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">FORUM<span>//BOARD</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html">BOARD</a>
+    <a class="nav-link active" href="ai.html">ASK AI</a>
+  </div>
+</header>
+
+<div id="toast-container"></div>
+
+<div class="ai-page">
+
+  <div class="ai-page-header">
+    <div class="ai-page-title">// ASK AI</div>
+    <div class="ai-page-sub">POWERED BY GROQ · NO HISTORY STORED · SINGLE-SHOT QUERIES</div>
+    <div class="model-badge">
+      <span class="model-dot"></span>
+      <span id="model-label">LLAMA-3.1-8B-INSTANT</span>
+    </div>
+  </div>
+
+  <div class="response-area">
+    <div class="thinking" id="thinking">
+      <div class="think-dots">
+        <div class="think-dot"></div>
+        <div class="think-dot"></div>
+        <div class="think-dot"></div>
+      </div>
+      <span>PROCESSING QUERY</span>
+    </div>
+    <div class="response-inner" id="response-inner">
+      <div class="response-placeholder" id="response-placeholder">
+        <div class="placeholder-icon">AI</div>
+        <div class="placeholder-text">ASK ANYTHING<br/>RESPONSE APPEARS HERE</div>
+      </div>
+      <div class="response-content" id="response-content"></div>
+    </div>
+    <div class="response-meta" id="response-meta">
+      <span id="response-model">—</span>
+      <span id="response-time">—</span>
+    </div>
+  </div>
+
+  <div class="input-section">
+    <div class="input-label">YOUR QUESTION</div>
+    <div class="input-wrap">
+      <textarea id="ai-input" placeholder="Ask anything... no history is stored between questions." rows="3"></textarea>
+      <button id="ai-submit" onclick="submitQuery()">ASK</button>
+    </div>
+  </div>
+
+  <div class="disclaimer">RESPONSES ARE GENERATED BY AI AND MAY BE INCORRECT · NO CONVERSATION HISTORY IS RETAINED</div>
+
+</div>
+
+<script src="relay-client.js"></script>
+<script>
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function setThinking(on) {
+  document.getElementById('thinking').classList.toggle('visible', on);
+  document.getElementById('response-inner').style.display = on ? 'none' : '';
+}
+
+function renderMarkdown(text) {
+  // Simple markdown: code blocks, inline code, bold, line breaks
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // fenced code blocks
+    .replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code>${code.trim()}</code></pre>`)
+    // inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // italic
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // headers
+    .replace(/^### (.+)$/gm, '<strong>$1</strong>')
+    .replace(/^## (.+)$/gm, '<strong>$1</strong>')
+    .replace(/^# (.+)$/gm, '<strong>$1</strong>')
+    // unordered lists
+    .replace(/^\s*[-*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    // double newline = paragraph break
+    .replace(/\n\n+/g, '</p><p>')
+    // single newline
+    .replace(/\n/g, '<br/>');
+  return '<p>' + html + '</p>';
+}
+
+async function submitQuery() {
+  const input = document.getElementById('ai-input');
+  const btn = document.getElementById('ai-submit');
+  const question = input.value.trim();
+
+  if (!question) { toast('ENTER A QUESTION', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '...';
+  setThinking(true);
+
+  document.getElementById('response-placeholder').style.display = 'none';
+  document.getElementById('response-content').classList.remove('visible');
+  document.getElementById('response-meta').classList.remove('visible');
+
+  const startTime = Date.now();
+
+  try {
+    await relay.connect().catch(() => {});
+    const res = await relay.send('groq_ask', { question });
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    if (res.error) {
+      toast('AI ERROR: ' + res.error, 'error');
+      setThinking(false);
+      document.getElementById('response-placeholder').style.display = '';
+    } else {
+      setThinking(false);
+      const content = document.getElementById('response-content');
+      content.innerHTML = renderMarkdown(res.answer);
+      content.classList.add('visible');
+
+      const meta = document.getElementById('response-meta');
+      document.getElementById('response-model').textContent = 'MODEL: ' + (res.model || 'GROQ');
+      document.getElementById('response-time').textContent = `${elapsed}s · ${res.tokens || '?'} TOKENS`;
+      meta.classList.add('visible');
+    }
+  } catch (e) {
+    setThinking(false);
+    document.getElementById('response-placeholder').style.display = '';
+    toast('CONNECTION ERROR: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'ASK';
+}
+
+// Enter to submit (Shift+Enter for newline)
+document.getElementById('ai-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submitQuery();
+  }
+});
+</script>
+</body>
+</html>
