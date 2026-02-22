@@ -505,6 +505,9 @@ function renderMarkdown(text) {
   return '<p>' + html + '</p>';
 }
 
+// Session history — lives in memory only, wiped on page refresh, never stored
+const sessionHistory = [];
+
 async function submitQuery() {
   const input = document.getElementById('ai-input');
   const btn = document.getElementById('ai-submit');
@@ -515,6 +518,7 @@ async function submitQuery() {
   btn.disabled = true;
   btn.textContent = '...';
   setThinking(true);
+  input.value = '';
 
   document.getElementById('response-placeholder').style.display = 'none';
   document.getElementById('response-content').classList.remove('visible');
@@ -522,17 +526,25 @@ async function submitQuery() {
 
   const startTime = Date.now();
 
+  // Add user turn to local session history
+  sessionHistory.push({ role: 'user', content: question });
+
   try {
     await relay.connect().catch(() => {});
-    const res = await relay.send('groq_ask', { question });
+    // Send full history as context — server passes to Groq, stores nothing
+    const res = await relay.send('groq_ask', { question, history: sessionHistory }, 30000);
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
     if (res.error) {
+      sessionHistory.pop(); // roll back on failure
       toast('AI ERROR: ' + res.error, 'error');
       setThinking(false);
       document.getElementById('response-placeholder').style.display = '';
     } else {
+      // Store assistant reply for next turn context
+      sessionHistory.push({ role: 'assistant', content: res.answer });
+
       setThinking(false);
       const content = document.getElementById('response-content');
       content.innerHTML = renderMarkdown(res.answer);
@@ -540,10 +552,11 @@ async function submitQuery() {
 
       const meta = document.getElementById('response-meta');
       document.getElementById('response-model').textContent = 'MODEL: ' + (res.model || 'GROQ');
-      document.getElementById('response-time').textContent = `${elapsed}s · ${res.tokens || '?'} TOKENS`;
+      document.getElementById('response-time').textContent = `${elapsed}s · ${res.tokens || '?'} TOKENS · ${sessionHistory.length / 2 | 0} EXCHANGES`;
       meta.classList.add('visible');
     }
   } catch (e) {
+    sessionHistory.pop();
     setThinking(false);
     document.getElementById('response-placeholder').style.display = '';
     toast('CONNECTION ERROR: ' + e.message, 'error');
